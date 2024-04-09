@@ -110,6 +110,61 @@ exports.createList = async (req, res, next) => {
   }
 };
 
+exports.changeStatus = async (req, res, next) => {
+  try {
+    const listId = req.params.listId;
+    const list = await List.findById(listId);
+    if (!list) {
+      return res.status(404).json({ error: "List not found" });
+    }
+    list.status = list.status === "active" ? "completed" : "active";
+    await list.save();
+
+    return res.json({
+      message: "List status changed successfully",
+      status: list.status,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.reorderList = async (req, res, next) => {
+  const TodoListId = req.params.TodoListId;
+  const newItems = req.body.newItems;
+
+  try {
+    // Find the TodoList by its ID and populate the list field
+    const todoList = await TodoList.findById(TodoListId);
+    
+    if (!todoList) {
+      const error = new Error('TodoList not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Update the order of items in the list
+    todoList.list = newItems;
+    
+    // Save the updated TodoList
+    const updatedTodoList = await todoList.save();
+
+    res.status(200).json({
+      message: 'TodoList reordered successfully',
+      todoList: updatedTodoList
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+
 exports.deleteList = async (req, res, next) => {
   try {
     const listId = req.params.listId;
