@@ -1,3 +1,4 @@
+//git push origin main
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -60,7 +61,7 @@ const startServer = async() => {
 }
 
 mongoose
-  .connect("mongodb/todo")
+  .connect("mongodb+srv://mongo:12345@cluster0.t1iooe7.mongodb.net/todo")
   .then((result) => {
     //app.listen(8080);
     startServer();

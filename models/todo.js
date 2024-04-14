@@ -9,8 +9,24 @@ const todoListSchema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
+  myTeam: [
+    {
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+      readAndWrite: {
+        type: Boolean,
+        default: false, // Set default value to false
+      },
+      readOnly: {
+        type: Boolean,
+        default: false, // Set default value to false
+      },
+    },
+  ],
   list: [
     {
       type: Schema.Types.ObjectId,

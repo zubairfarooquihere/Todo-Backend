@@ -6,7 +6,10 @@ exports.getPosts = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.userId).populate({
       path: "TodoList",
-      populate: { path: "list" },
+      populate: [
+        { path: "list" },
+        { path: "myTeam.user", select: "name email" },
+      ],
     });
 
     res.status(200).json({
@@ -139,22 +142,22 @@ exports.reorderList = async (req, res, next) => {
   try {
     // Find the TodoList by its ID and populate the list field
     const todoList = await TodoList.findById(TodoListId);
-    
+
     if (!todoList) {
-      const error = new Error('TodoList not found');
+      const error = new Error("TodoList not found");
       error.statusCode = 404;
       throw error;
     }
 
     // Update the order of items in the list
     todoList.list = newItems;
-    
+
     // Save the updated TodoList
     const updatedTodoList = await todoList.save();
 
     res.status(200).json({
-      message: 'TodoList reordered successfully',
-      todoList: updatedTodoList
+      message: "TodoList reordered successfully",
+      todoList: updatedTodoList,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -163,7 +166,6 @@ exports.reorderList = async (req, res, next) => {
     next(err);
   }
 };
-
 
 exports.deleteList = async (req, res, next) => {
   try {
