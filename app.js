@@ -17,12 +17,15 @@ const authRoutes = require('./routes/auth');
 app.use(express.urlencoded({extended: true,}));
 
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader(
-    "Access-Control-Allow-Methods",
-    "OPTIONS, GET, POST, PUT, PATCH, DELETE"
+    'Access-Control-Allow-Methods',
+    'OPTIONS, GET, POST, PUT, PATCH, DELETE'
   );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
   next();
 });
 
@@ -61,7 +64,7 @@ const startServer = async() => {
 }
 
 mongoose
-  .connect("mongodb+srv://mongo:12345@cluster0.t1iooe7.mongodb.net/todo")
+  .connect("mongodb/todo")
   .then((result) => {
     //app.listen(8080);
     startServer();

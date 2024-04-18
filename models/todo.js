@@ -15,7 +15,8 @@ const todoListSchema = new Schema({
     {
       user: {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        ref: "User", // Reference the User model
+        required: true,
       },
       readAndWrite: {
         type: Boolean,
@@ -31,6 +32,12 @@ const todoListSchema = new Schema({
     {
       type: Schema.Types.ObjectId,
       ref: "list",
+    },
+  ],
+  comments: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Comment",
     },
   ],
 });
