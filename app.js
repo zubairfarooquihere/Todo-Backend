@@ -83,7 +83,7 @@ const startServer = async () => {
 };
 
 mongoose
-  .connect("mongodb+srv://mongo:12345@cluster0.t1iooe7.mongodb.net/todo")
+  .connect("mongodb/todo")
   .then((result) => {
     //app.listen(8080);
     startServer();
