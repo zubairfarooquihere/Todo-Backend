@@ -3,27 +3,31 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 
-const { ApolloServer } = require('apollo-server-express');
-const cors = require('cors')
-const typeDefs = require('./schema/index');
-const resolvers = require('./resolvers/index');
+const { ApolloServer } = require("apollo-server-express");
+const cors = require("cors");
+const typeDefs = require("./schema/index");
+const resolvers = require("./resolvers/index");
+
+const setupSocket  = require("./socket/index");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
 app.use(cors());
 
 const todoRoutes = require("./routes/todo");
-const authRoutes = require('./routes/auth');
+const authRoutes = require("./routes/auth");
 
-app.use(express.urlencoded({extended: true,}));
+app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
-    'Access-Control-Allow-Methods',
-    'OPTIONS, GET, POST, PUT, PATCH, DELETE'
+    "Access-Control-Allow-Methods",
+    "OPTIONS, GET, POST, PUT, PATCH, DELETE"
   );
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
   next();
@@ -41,32 +45,49 @@ app.use((error, req, res, next) => {
   res.status(status).json({ message: message });
 });
 
-const startServer = async() => {
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+const startServer = async () => {
   try {
-    //const app = express();
-    const server = new ApolloServer({ typeDefs, resolvers, graphiql: true,  context: ({ req }) => ({ req }) });
+    const Apolloserver = new ApolloServer({
+      typeDefs,
+      resolvers,
+      graphiql: true,
+      context: ({ req }) => ({ req }),
+    });
 
-    await server.start();
-    server.applyMiddleware({ app });
-
-    // app.use(cors())
-    
-    // app.get('/', (req, res) => {
-    //   res.send('Hello from REST API!');
+    await Apolloserver.start();
+    Apolloserver.applyMiddleware({ app });
+    // const io = new Server(httpServer, {
+    //   cors: {
+    //     origin: "*",
+    //     methods: ["GET", "POST"],
+    //   },
     // });
+    setupSocket(httpServer);
 
-    app.listen({ port: 8080 }, () =>
-      console.log(`Server ready at http://localhost:8080${server.graphqlPath}`)
+    httpServer.listen({ port: 8080 }, () =>
+      console.log(
+        `Server ready at http://localhost:8080${Apolloserver.graphqlPath}`
+      )
     );
   } catch (error) {
-    console.error('Error starting the server:', error);
+    console.error("Error starting the server:", error);
   }
-}
+};
 
 mongoose
-  .connect("mongodb/todo")
+  .connect("mongodb+srv://mongo:12345@cluster0.t1iooe7.mongodb.net/todo")
   .then((result) => {
     //app.listen(8080);
     startServer();
   })
   .catch((err) => console.log(err));
+
+  module.exports = httpServer;

@@ -2,6 +2,8 @@ const TodoList = require("../models/todo");
 const List = require("../models/list");
 const User = require("../models/user");
 
+const setupSocket = require("../socket/index");
+
 exports.getPosts = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.userId).populate({
@@ -97,13 +99,19 @@ exports.createList = async (req, res, next) => {
   try {
     const todoId = req.params.todoId;
     const text = req.body.text;
+    const userId = req.body.userId;
     const status = "active";
     const todoList = await TodoList.findById(todoId);
 
     const list = new List({ text, status, TodoListId: todoList._id });
-    const response = await list.save();
-    todoList.list.push(response);
-    await todoList.save();
+    // const response = await list.save();
+    // todoList.list.push(response);
+    // await todoList.save();
+    console.log('userId');
+    console.log(userId);
+    const newItem = { text, status };
+    const io = setupSocket.io;
+    io.emit(`list_update_${todoId}`, {list: list, userId: userId});  
     res.status(200).json({ message: "Created List successfully.", list });
   } catch (err) {
     if (!err.statusCode) {

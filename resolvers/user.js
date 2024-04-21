@@ -1,32 +1,13 @@
 const User = require("../models/user");
-const Comment = require("../models/comment");
 const TodoList = require("../models/todo");
-const jwt = require("jsonwebtoken");
-//const isAuth = require('../middleware/is-auth');
-
-const auth = (authHeader) => {
-  if (!authHeader) {
-    throw new Error("No authorization header provided. Access denied.");
-  }
-  const token = authHeader.split(" ")[1];
-  let decodedToken;
-  try {
-    decodedToken = jwt.verify(token, "somesupersecretsecret");
-  } catch (err) {
-    throw new Error("Invalid or expired token. Authentication failed.");
-  }
-  if (!decodedToken) {
-    throw new Error("Token verification failed. User not authenticated.");
-  }
-};
+const auth = require("./middleware/is-authGraph");
 
 const resolvers = {
   Query: {
     findUser: async (_, { email, userId }, context) => {
       try {
         const token = context.req.headers.authorization;
-        auth(token);
-
+        auth(token)
         const users = await User.find({
           email: { $regex: new RegExp(email, "i") },
           _id: { $ne: userId }, // Exclude users with the specified userId
@@ -41,8 +22,7 @@ const resolvers = {
     getMemberInfo: async (_, { todoId, userId }, context) => {
       try {
         const token = context.req.headers.authorization;
-        //console.log(token);
-        auth(token);
+        auth(token)
         const todoList = await TodoList.findById(todoId);
         if (!todoList) {
           throw new Error("Todo list not found");
@@ -77,7 +57,8 @@ const resolvers = {
     },
     getComments: async (_, { todoId }, context) => {
       try {
-        // Find the TodoList by its ID and populate the 'comments' field
+        const token = context.req.headers.authorization;
+        auth(token)
         const todoList = await TodoList.findById(todoId).populate('comments');
         
         if (!todoList) {
@@ -100,8 +81,8 @@ const resolvers = {
       context
     ) => {
       try {
-        const token = context.req.headers.authorization;
-        auth(token);
+        //const token = context.req.headers.authorization;
+        //auth(token);
 
         const userInfo = await resolvers.Query.getMemberInfo(
           _,
@@ -170,7 +151,7 @@ const resolvers = {
     deleteUserToTodo: async (_, { email, todoId, userId }, context) => {
       try {
         const token = context.req.headers.authorization;
-        auth(token);
+        auth(token)
         const userInfo = await resolvers.Query.getMemberInfo(
           _,
           { todoId, userId },
@@ -207,54 +188,6 @@ const resolvers = {
         throw new Error("No Permission");
       } catch (error) {
         throw new Error(`Failed to delete user from todo: ${error.message}`);
-      }
-    },
-    addComment: async (_, { todoId, comment, userId }, context) => {
-      try {
-        // Create a new Comment document
-        const newComment = new Comment({
-          comment: comment,
-          userId: userId,
-        });
-        // Save the new comment to the database
-        const savedComment = await newComment.save();
-        // Find the TodoList with the given todoId
-        const todoList = await TodoList.findById(todoId);
-        if (!todoList) {
-          throw new Error("Todo list not found");
-        }
-        // Add the newly created comment to the todoList's comments array
-        todoList.comments.push(savedComment);
-        // Save the updated TodoList document
-        await todoList.save();
-        // Return the saved comment
-        return {userId, comment: savedComment.comment, _id: savedComment._id};
-      } catch (error) {
-        throw new Error(`Failed to add comment: ${error.message}`);
-      }
-    },
-    deleteComment: async (_, { commentId, todoId }, context) => {
-      try {
-        // Find the comment by its ID
-        const comment = await Comment.findById(commentId);
-        if (!comment) {
-          // If the comment doesn't exist, return an error or handle accordingly
-          throw new Error('Comment not found');
-        }
-    
-        // Remove the comment
-        await comment.deleteOne();
-        // The middleware in the Comment model will take care of removing it from associated TodoLists
-        console.log('Comment removed successfully');
-
-        const todoList = await TodoList.findById(todoId);
-        if (!todoList) {
-          throw new Error("Todo list not found");
-        }
-
-        return commentId;
-      } catch (error) {
-        console.error('Error removing comment:', error);
       }
     },
   },
