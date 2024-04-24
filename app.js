@@ -12,8 +12,14 @@ const setupSocket  = require("./socket/index");
 const http = require("http");
 const { Server } = require("socket.io");
 
+const helmet = require("helmet");
+var compression = require('compression')
+
 const app = express();
 app.use(cors());
+
+app.use(helmet());
+app.use(compression())
 
 const todoRoutes = require("./routes/todo");
 const authRoutes = require("./routes/auth");
@@ -66,7 +72,8 @@ const startServer = async () => {
     Apolloserver.applyMiddleware({ app });
     setupSocket(httpServer);
 
-    httpServer.listen({ port: 8080 }, () =>
+    const port = process.env.PORT || 8080; //{ process.env.PORT || port: 8080 }
+    httpServer.listen(port, () =>
       console.log(
         `Server ready at http://localhost:8080${Apolloserver.graphqlPath}`
       )
@@ -77,7 +84,7 @@ const startServer = async () => {
 };
 
 mongoose
-  .connect("mongodb+srv://mongo:12345@cluster0.t1iooe7.mongodb.net/todo")
+  .connect( `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.t1iooe7.mongodb.net/${process.env.MONGO_DEFAULT_DATABASE}`) //${process.env.MONGO_USER}
   .then((result) => {
     //app.listen(8080);
     startServer();
