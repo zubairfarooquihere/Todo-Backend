@@ -1,5 +1,5 @@
 exports.UserTypeDefs = `
-    _id: ID
+    _id: String
     name: String
     email: String
 `;
@@ -13,15 +13,8 @@ exports.TeamTypeDefs = `
 
 exports.TeamTypeDefsInput = `
     _id: String
-    readAndWrite: String!
-    readOnly: String!
-    user: inputUser!
-`;
-
-exports.TeamTypeDefsInput = `
-    _id: String
-    readAndWrite: String!
-    readOnly: String!
+    readAndWrite: Boolean!
+    readOnly: Boolean!
     user: inputUser!
 `;
 

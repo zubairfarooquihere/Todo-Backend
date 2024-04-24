@@ -64,12 +64,6 @@ const startServer = async () => {
 
     await Apolloserver.start();
     Apolloserver.applyMiddleware({ app });
-    // const io = new Server(httpServer, {
-    //   cors: {
-    //     origin: "*",
-    //     methods: ["GET", "POST"],
-    //   },
-    // });
     setupSocket(httpServer);
 
     httpServer.listen({ port: 8080 }, () =>
@@ -83,7 +77,7 @@ const startServer = async () => {
 };
 
 mongoose
-  .connect("mongodb/todo")
+  .connect("mongodb+srv://mongo:12345@cluster0.t1iooe7.mongodb.net/todo")
   .then((result) => {
     //app.listen(8080);
     startServer();

@@ -1,6 +1,8 @@
 const TodoList = require("../models/todo");
 const List = require("../models/list");
 const User = require("../models/user");
+const Comment = require("../models/comment");
+const mongoose = require("mongoose");
 
 const setupSocket = require("../socket/index");
 
@@ -50,47 +52,54 @@ exports.createTodo = async (req, res, next) => {
 };
 
 exports.deleteTodo = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   const todoId = req.params.todoId;
+  //req.user.userId
   try {
-    // Find the TodoList document by its ID using Mongoose's findById method
-    const todoList = await TodoList.findById(todoId);
+    const todoList = await TodoList.findById(todoId).session(session);
+    const myTeam = todoList.myTeam;
 
     if (!todoList) {
       return res.status(404).json({ error: "TodoList not found" });
     }
 
-    let listIds = [];
-    if (todoList.list && todoList.list.length > 0) {
-      listIds = todoList.list.map((item) => item._id);
-    }
+    await List.deleteMany({ _id: { $in: todoList.list } }).session(session);
+    await Comment.deleteMany({ _id: { $in: todoList.comments } }).session(session);
 
-    // Delete the associated list documents
-    await List.deleteMany({ _id: { $in: listIds } });
+    await TodoList.findByIdAndDelete(todoId).session(session);
 
-    // Delete the TodoList document using Mongoose's remove method
-    await todoList.deleteOne();
+    // const user = await User.findOneAndUpdate(
+    //   { _id: todoList.userId },
+    //   { $pull: { TodoList: todoId } },
+    //   { new: true, session }
+    // );
+    let user = await User.findById(todoList.userId);
+    const index = user.TodoList.findIndex((todo) => todo.equals(todoId));
+    user = await User.findOneAndUpdate(
+      { _id: todoList.userId },
+      { $pull: { TodoList: todoId } },
+      { new: true, session }
+    );
+    myTeam.map(async (team) => {
+      return await User.findOneAndUpdate(
+        { _id: team.user },
+        { $pull: { TodoList: todoId } },
+        { new: true, session }
+      );
+    })
 
-    const user = await User.findOne({ _id: req.user.userId });
+    await session.commitTransaction();
+    session.endSession();
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-
-    // Find the index of the todoList in the user's TodoList array
-    const index = user.TodoList.findIndex((todo) => todo.equals(todoId));
-    if (index === -1) {
-      return res
-        .status(404)
-        .json({ error: "TodoList not found in user's TodoList" });
-    }
-
-    // Remove the todoList from the User document
-    user.TodoList.splice(index, 1);
-    await user.save();
-
     return res.json({ message: "Todo deleted successfully", index });
   } catch (error) {
     console.error("Error deleting todoList and lists:", error);
+    await session.abortTransaction();
+    session.endSession();
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -104,14 +113,13 @@ exports.createList = async (req, res, next) => {
     const todoList = await TodoList.findById(todoId);
 
     const list = new List({ text, status, TodoListId: todoList._id });
-    // const response = await list.save();
-    // todoList.list.push(response);
-    // await todoList.save();
-    console.log('userId');
-    console.log(userId);
-    const newItem = { text, status };
+    const response = await list.save();
+    todoList.list.push(response);
+    await todoList.save();
+
     const io = setupSocket.io;
     io.emit(`list_update_${todoId}`, {list: list, userId: userId});  
+    
     res.status(200).json({ message: "Created List successfully.", list });
   } catch (err) {
     if (!err.statusCode) {

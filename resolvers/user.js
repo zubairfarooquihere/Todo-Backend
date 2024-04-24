@@ -21,6 +21,7 @@ const resolvers = {
     },
     getMemberInfo: async (_, { todoId, userId }, context) => {
       try {
+        console.log('todoId: '+todoId);
         const token = context.req.headers.authorization;
         auth(token)
         const todoList = await TodoList.findById(todoId);
@@ -83,7 +84,7 @@ const resolvers = {
       try {
         //const token = context.req.headers.authorization;
         //auth(token);
-
+        console.log('addUserToTodo');
         const userInfo = await resolvers.Query.getMemberInfo(
           _,
           { todoId, userId },
@@ -114,7 +115,7 @@ const resolvers = {
               todoList.myTeam[teamIndex].readOnly = teamMember.readOnly;
             }
           }
-
+          await todoList.save();
         }
 
         if (newTeam.length > 0) {
@@ -135,9 +136,8 @@ const resolvers = {
               });
             }
           }
+          await todoList.save();
         }
-        await todoList.save();
-
         // const populatedTodoList = await TodoList.findById(todoId).populate({
         //   path: 'myTeam.user',
         //   model: 'User' // Specify the model to populate from

@@ -2,6 +2,8 @@ const Comment = require("../models/comment");
 const TodoList = require("../models/todo");
 const auth = require('./middleware/is-authGraph');
 
+const setupSocket = require("../socket/index");
+
 const resolvers = {
   Query: {
     getComments: async (_, { todoId }, context) => {
@@ -30,25 +32,21 @@ const resolvers = {
   Mutation: {
     addComment: async (_, { todoId, comment, userId }, context) => {
       try {
-        // Create a new Comment document
         const token = context.req.headers.authorization;
         auth(token);
         const newComment = new Comment({
           comment: comment,
           userId: userId,
         });
-        // Save the new comment to the database
         const savedComment = await newComment.save();
-        // Find the TodoList with the given todoId
         const todoList = await TodoList.findById(todoId);
         if (!todoList) {
           throw new Error("Todo list not found");
         }
-        // Add the newly created comment to the todoList's comments array
         todoList.comments.push(savedComment);
-        // Save the updated TodoList document
         await todoList.save();
-        // Return the saved comment
+        const io = setupSocket.io;
+        io.emit(`comment_update_${todoId}`, {comment: savedComment.comment, userId: userId});
         return { userId, comment: savedComment.comment, _id: savedComment._id };
       } catch (error) {
         throw new Error(`Failed to add comment: ${error.message}`);
